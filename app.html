@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>🚑 Smart Emergency Triage System</title>
+    <style>
+        body {
+            background: #f4f6fa;
+            font-family: "Poppins", sans-serif;
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: #e63946;
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        main {
+            max-width: 700px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 12px;
+            padding: 20px 30px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            color: #e63946;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .symptom {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .symptom input {
+            margin-right: 10px;
+            transform: scale(1.2);
+        }
+
+        button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-top: 15px;
+            font-size: 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: #e63946;
+            color: white;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #d62828;
+        }
+
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+
+        table th,
+        table td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            text-align: center;
+        }
+
+        table th {
+            background: #f7f7f7;
+            color: #e63946;
+        }
+
+        .alert {
+            background: #e63946;
+            color: white;
+            padding: 12px;
+            text-align: center;
+            border-radius: 8px;
+            font-weight: bold;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <header>Smart Emergency Triage System</header>
+
+    <main>
+        <h2>Critical Symptom Check</h2>
+        <label>Patient Name:</label>
+        <input type="text" id="patientName" placeholder="Enter patient's name"
+            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; margin-bottom: 15px;" />
+
+        <div id="symptomList"></div>
+
+        <button onclick="submitTriage()">🚑 Submit & Dispatch Ambulance</button>
+        <div id="alertBox" class="alert"></div>
+
+        <h2>Ambulance Queue</h2>
+        <table id="queueTable">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Name</th>
+                    <th>Diagnosis</th>
+                    <th>Severity</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </main>
+
+    <script>
+        // ------------------------
+        // Deterministic Triage Logic (Pure JS)
+        // ------------------------
+        const criticalSymptoms = {
+            unconsciousness: "Is the patient unconscious?",
+            chest_pain: "Severe chest pain?",
+            shortness_of_breath: "Struggling to breathe?",
+            bleeding: "Heavy bleeding?",
+            cyanosis: "Bluish lips or skin?"
+        };
+
+        const severityRank = {
+            "Cardiac Arrest": 1,
+            "Major Trauma/Bleeding": 2,
+            "Heart Attack": 3,
+            "Severe Respiratory Distress": 4,
+            "Stroke": 5,
+            "Seizure/Post-Seizure": 6,
+            "Moderate Injury/Illness": 7,
+            "Minor Condition": 8
+        };
+
+        let queue = [];
+
+        const symptomList = document.getElementById("symptomList");
+        Object.entries(criticalSymptoms).forEach(([key, label]) => {
+            const div = document.createElement("div");
+            div.className = "symptom";
+            div.innerHTML = `<input type="checkbox" id="${key}" /> <label for="${key}">${label}</label>`;
+            symptomList.appendChild(div);
+        });
+
+        function predictDiagnosis(data) {
+            // Deterministic rule-based reasoning (no randomness, no ML)
+            const { unconsciousness, chest_pain, shortness_of_breath, bleeding, cyanosis } = data;
+
+            if (unconsciousness && shortness_of_breath && cyanosis)
+                return "Cardiac Arrest";
+            else if (bleeding && unconsciousness)
+                return "Major Trauma/Bleeding";
+            else if (chest_pain && shortness_of_breath)
+                return "Heart Attack";
+            else if (shortness_of_breath && cyanosis)
+                return "Severe Respiratory Distress";
+            else if (unconsciousness)
+                return "Stroke";
+            else if (chest_pain)
+                return "Seizure/Post-Seizure";
+            else if (bleeding)
+                return "Moderate Injury/Illness";
+            else return "Minor Condition";
+        }
+
+        function submitTriage() {
+            const name = document.getElementById("patientName").value.trim();
+            if (!name) {
+                alert("Please enter patient's name.");
+                return;
+            }
+
+            const patientData = {};
+            for (let key in criticalSymptoms) {
+                patientData[key] = document.getElementById(key).checked ? 1 : 0;
+            }
+
+            const diagnosis = predictDiagnosis(patientData);
+            const severity = severityRank[diagnosis];
+            const explanation = Object.keys(patientData)
+                .filter(k => patientData[k] === 1)
+                .map(k => criticalSymptoms[k])
+                .join(", ") || "No symptoms selected";
+
+            queue.push({ name, diagnosis, severity, reason: explanation });
+            queue.sort((a, b) => a.severity - b.severity);
+
+            document.getElementById("alertBox").innerText = `🚨 ${name} diagnosed with ${diagnosis} (Severity ${severity}). Ambulance dispatched immediately!`;
+            document.getElementById("alertBox").style.display = "block";
+
+            updateQueue();
+            document.getElementById("patientName").value = "";
+            Object.keys(criticalSymptoms).forEach(k => document.getElementById(k).checked = false);
+        }
+
+        function updateQueue() {
+            const tbody = document.querySelector("#queueTable tbody");
+            tbody.innerHTML = "";
+            queue.forEach((p, i) => {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `<td>${i + 1}</td><td>${p.name}</td><td>${p.diagnosis}</td><td>${p.severity}</td>`;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+
+</html>
